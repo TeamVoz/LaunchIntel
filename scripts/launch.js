@@ -1,69 +1,147 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const STATE_FILE = path.join(__dirname, '../state/launches.json');
+// APIs
 const LL_API_URL = process.env.LL_API_URL || "https://ll.thespacedevs.com/2.2.0/launch/upcoming/";
-// Locations: Cape Canaveral (12), KSC (27), Vandenberg (11), Wallops (21), Boca Chica (143)
-const TARGET_LOCATIONS = [12, 27, 11, 21, 143]; 
+const SPACEX_API_URL = "https://api.spacexdata.com/v5/launches/upcoming";
 
-async function getLaunches() {
-  try {
-    // Check cache first (TTL 1 hour)
-    if (fs.existsSync(STATE_FILE)) {
+// Locations of interest (IDs for LL)
+// 12=Cape Canaveral, 27=KSC, 11=Vandenberg, 21=Wallops, 143=Starbase/Boca Chica
+const TARGET_IDS = [12, 27, 11, 21, 143]; 
+const TARGET_KEYWORDS = ["canaveral", "kennedy", "vandenberg", "wallops", "boca chica", "starbase"];
+
+function readCache() {
+  if (fs.existsSync(STATE_FILE)) {
+    try {
       const cache = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+      // Valid for 1 hour
       if (Date.now() - cache.timestamp < 3600000) {
         return cache.data;
       }
-    }
+      return { data: cache.data, expired: true };
+    } catch (e) { return null; }
+  }
+  return null;
+}
 
-    const response = await fetch(`${LL_API_URL}?limit=10&mode=list`);
-    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
-    
-    const data = await response.json();
-    const launches = data.results || [];
+function saveCache(data) {
+  if (!fs.existsSync(path.dirname(STATE_FILE))) {
+    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
+  }
+  fs.writeFileSync(STATE_FILE, JSON.stringify({ timestamp: Date.now(), data }, null, 2));
+}
 
-    // Filter for our target locations
-    const relevantLaunches = launches.filter(l => {
-      if (!l.pad || !l.pad.location) return false;
-      // LL uses location IDs, but in list mode we might just get names.
-      // Checking names for robustness.
-      const locName = (l.pad.location.name || "").toLowerCase();
-      const locId = l.pad.location.id;
-      
-      return TARGET_LOCATIONS.includes(locId) || 
-             locName.includes("canaveral") || 
-             locName.includes("kennedy") || 
-             locName.includes("vandenberg") || 
-             locName.includes("wallops") || 
-             locName.includes("boca chica") ||
-             locName.includes("starbase");
-    });
-
-    const output = relevantLaunches.slice(0, 5).map(l => ({
-      name: l.name,
-      status: l.status ? l.status.name : "Unknown",
-      net: l.net,
-      pad: l.pad ? l.pad.name : "Unknown Pad",
-      location: l.pad && l.pad.location ? l.pad.location.name : "Unknown Location",
-      mission: l.mission ? l.mission.description : "No mission description.",
-      image: l.image || null
-    }));
-
-    // Update cache
-    fs.writeFileSync(STATE_FILE, JSON.stringify({ timestamp: Date.now(), data: output }, null, 2));
-    
-    return output;
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
   } catch (error) {
-    console.error("Error fetching launches:", error);
-    return [];
+    clearTimeout(id);
+    throw error;
   }
 }
 
-// Main execution block if run directly
+async function getLaunchesFromWeb() {
+  // Fallback: Use web_search via exec (since we are inside a node script, we can't call agent tools directly easily 
+  // without a bridge, but we can simulate or print a message for the agent to do it. 
+  // However, for a standalone skill, we might just return a "Data unavailable" message 
+  // or try to parse a public page if possible.
+  // Given the constraints, we will return a special flag or partial data from cache if available.
+  console.error("⚠️ APIs failed. Returning cached data if available.");
+  const cache = readCache();
+  if (cache && cache.data) return cache.data;
+  return [];
+}
+
+async function getLaunches() {
+  // 1. Try Cache first
+  const cache = readCache();
+  if (cache && !cache.expired) return cache.data;
+
+  let llData = [], sxData = [];
+  let apiSuccess = false;
+
+  // 2. Fetch from LL
+  try {
+    const res = await fetchWithTimeout(`${LL_API_URL}?limit=20&mode=list`);
+    if (res.ok) {
+      const data = await res.json();
+      llData = data.results || [];
+      apiSuccess = true;
+    }
+  } catch (e) {
+    console.error("LL API Error:", e.message);
+  }
+
+  // 3. Fetch from SpaceX
+  try {
+    const res = await fetchWithTimeout(SPACEX_API_URL);
+    if (res.ok) {
+      sxData = await res.json();
+      apiSuccess = true;
+    }
+  } catch (e) {
+    console.error("SpaceX API Error:", e.message);
+  }
+
+  // 4. Fallback if both failed
+  if (!apiSuccess) {
+    console.error("⚠️ APIs failed. Returning cached data if available.");
+    const cache = readCache();
+    if (cache && cache.data) return cache.data;
+    return [];
+  }
+
+  // 5. Merge and Filter
+  // Normalize SpaceX data to match LL structure roughly
+  const sxNormalized = sxData.map(l => ({
+    name: l.name,
+    net: l.date_utc,
+    status: { name: "Confirmed" },
+    pad: { 
+      name: "SpaceX Pad", 
+      location: { name: "SpaceX Facility", id: 0 } // Placeholder
+    },
+    image: l.links.patch.small
+  }));
+  
+  // Combine, prioritizing LL for details if possible, but for simplicity just append unique ones based on name/date?
+  // Actually, LL covers SpaceX well. Let's just use LL primarily and fallback to SX only if LL fails or is empty.
+  let allLaunches = llData;
+  if (llData.length === 0 && sxData.length > 0) {
+     allLaunches = sxNormalized;
+  }
+
+  const relevant = allLaunches.filter(l => {
+    // Filter logic
+    if (!l.pad || !l.pad.location) return false;
+    const locName = (l.pad.location.name || "").toLowerCase();
+    const locId = l.pad.location.id;
+    return TARGET_IDS.includes(locId) || TARGET_KEYWORDS.some(k => locName.includes(k));
+  });
+
+  const output = relevant.slice(0, 5).map(l => ({
+    name: l.name,
+    status: l.status ? l.status.name : "Unknown",
+    net: l.net,
+    pad: l.pad ? l.pad.name : "Unknown Pad",
+    location: l.pad && l.pad.location ? l.pad.location.name : "Unknown Location",
+    image: l.image || null
+  }));
+
+  saveCache(output);
+  return output;
+}
+
 if (require.main === module) {
   getLaunches().then(launches => {
     if (launches.length === 0) {
-      console.log("No upcoming launches found for FL/TX/CA/VA.");
+      console.log("No upcoming launches found (or API error).");
     } else {
       console.log("🚀 **Upcoming Launches**\n");
       launches.forEach(l => {

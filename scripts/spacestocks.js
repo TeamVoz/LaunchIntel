@@ -1,20 +1,18 @@
-const STOCKS = (process.env.STOCK_SYMBOLS || "RKLB,SPCE,BA,LMT,ASTR").split(',');
+const STOCKS = (process.env.STOCK_SYMBOLS || "RKLB,SPCE,BA,LMT").split(',');
 
 async function getStockPrices() {
   const results = [];
-  
+  let apiFailed = false;
+
   for (const symbol of STOCKS) {
     try {
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol.trim()}?interval=1d`;
       const res = await fetch(url);
-      if (!res.ok) {
-        results.push({ symbol, error: "Failed to fetch" });
-        continue;
-      }
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       
       const data = await res.json();
       if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
-        results.push({ symbol, error: "No data" });
+        results.push({ symbol: symbol.trim(), error: "No data" });
         continue;
       }
 
@@ -32,9 +30,17 @@ async function getStockPrices() {
         currency: meta.currency
       });
     } catch (e) {
-      results.push({ symbol, error: e.message });
+      console.error(`Error fetching ${symbol}: ${e.message}`);
+      results.push({ symbol: symbol.trim(), error: "Data unavailable" });
+      apiFailed = true; // flag if any fail
     }
   }
+
+  // If ALL failed, return special object indicating web search fallback needed
+  if (results.every(r => r.error)) {
+    return [{ error: "ALL_FAILED", message: "Stock data unavailable via API. Try asking: 'Search stock price for RKLB'" }];
+  }
+
   return results;
 }
 

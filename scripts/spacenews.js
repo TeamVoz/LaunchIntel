@@ -3,7 +3,7 @@ const NEWS_URL = "https://api.spaceflightnewsapi.net/v4/articles/?limit=5";
 async function getNews() {
   try {
     const res = await fetch(NEWS_URL);
-    if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
     
     const data = await res.json();
     return data.results.map(article => ({
@@ -14,8 +14,16 @@ async function getNews() {
       published: new Date(article.published_at).toLocaleDateString()
     }));
   } catch (e) {
-    console.error("Error fetching news:", e);
-    return [];
+    console.error("Error fetching news:", e.message);
+    // Fallback: Return a single item suggesting a manual check or using web_search
+    // Since we can't easily invoke web_search from here without a bridge, we return a hint.
+    return [{
+      title: "Latest Space News (API Unavailable)",
+      url: "https://spacenews.com/",
+      site: "SpaceNews",
+      summary: "Unable to fetch live news. Click to read directly.",
+      published: new Date().toLocaleDateString()
+    }];
   }
 }
 

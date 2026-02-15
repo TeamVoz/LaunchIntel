@@ -22,6 +22,7 @@ async function getRecentLaunches(days = 30) {
     }));
   } catch (error) {
     console.error("Error fetching recent launches:", error);
+    // Fallback hint
     return [];
   }
 }
@@ -32,12 +33,12 @@ if (require.main === module) {
   
   getRecentLaunches(days).then(launches => {
     if (launches.length === 0) {
-      console.log(`No launches found in the last ${days} days.`);
+      console.log(`No recent launches found (or API error). Try checking SpaceflightNow or SpaceDevs directly.`);
     } else {
       console.log(`🚀 **Launches (Last ${days} Days)**\n`);
       launches.forEach(l => {
         const date = new Date(l.net).toLocaleDateString();
-        const icon = l.status.toLowerCase().includes('success') ? '✅' : '❌';
+        const icon = (l.status.toLowerCase().includes('success') || l.status.toLowerCase().includes('go')) ? '✅' : '❌';
         console.log(`${icon} **${l.name}**\n📅 ${date}\n📍 ${l.location}\nStatus: ${l.status}\n`);
       });
     }

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaunchIntel Countdown</title>
+    <style>
+        body { margin: 0; padding: 0; background: #0b0d17; color: #fff; font-family: 'Arial', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .container { text-align: center; z-index: 2; }
+        h1 { font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
+        .mission { font-size: 1.5rem; color: #a0a0a0; margin-bottom: 2rem; }
+        .countdown { font-size: 5rem; font-weight: bold; font-variant-numeric: tabular-nums; letter-spacing: 2px; }
+        .details { margin-top: 2rem; display: flex; gap: 2rem; justify-content: center; font-size: 1.2rem; }
+        .detail-item span { display: block; font-size: 0.9rem; color: #888; }
+        .bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; z-index: 1; }
+        .patch { width: 150px; height: 150px; margin-bottom: 1rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
+    </style>
+</head>
+<body>
+    <img id="bg-image" class="bg" src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920&auto=format&fit=crop" alt="Space Background">
+    <div class="container">
+        <img id="patch" class="patch" src="" alt="Mission Patch" style="display:none;">
+        <h1 id="rocket-name">Loading...</h1>
+        <div class="mission" id="mission-name">Fetching data...</div>
+        <div class="countdown" id="timer">00:00:00:00</div>
+        <div class="details">
+            <div class="detail-item"><span id="location-label">Location</span><div id="location">Unknown</div></div>
+            <div class="detail-item"><span id="status-label">Status</span><div id="status">Pending</div></div>
+        </div>
+    </div>
+
+    <script>
+        // Data injected here
+        const launchData = window.LAUNCH_DATA || { net: Date.now() + 86400000, name: "Test Launch", mission: "Demo Mission", location: "Cape Canaveral", status: "Go" };
+        
+        if (launchData.image) {
+            document.getElementById('patch').src = launchData.image;
+            document.getElementById('patch').style.display = 'block';
+        }
+        document.getElementById('rocket-name').innerText = launchData.name;
+        document.getElementById('mission-name').innerText = launchData.mission || "";
+        document.getElementById('location').innerText = launchData.location;
+        document.getElementById('status').innerText = launchData.status;
+
+        function updateTimer() {
+            const now = new Date().getTime();
+            const launchTime = new Date(launchData.net).getTime();
+            const distance = launchTime - now;
+
+            if (distance < 0) {
+                document.getElementById('timer').innerText = "T+ " + formatTime(Math.abs(distance));
+                document.getElementById('timer').style.color = "#4caf50";
+            } else {
+                document.getElementById('timer').innerText = "T- " + formatTime(distance);
+            }
+        }
+
+        function formatTime(ms) {
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            return `${days}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+    </script>
+</body>
+</html>
