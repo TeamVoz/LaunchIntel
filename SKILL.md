@@ -1,5 +1,5 @@
 ---
-name: launchintel
+name:launchintel
 description: "Space hobbyist toolkit: real-time launch tracker (NASA/TheSpaceDev FL/TX/CA), space stocks ticker, news/events."
 ---
 # LaunchIntel Skill
