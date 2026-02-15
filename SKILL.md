@@ -1,6 +1,6 @@
 ---
 name: launchintel
-description: Space hobbyist toolkit: real-time launch tracker (NASA/TheSpaceDev FL/TX/CA), space stocks ticker, news/events/30-day recs, Telegram/cron alerts (24h/1h/10min). Triggers: Starship/SpaceX/launches/missions/space force.
+description: "Space hobbyist toolkit: real-time launch tracker (NASA/TheSpaceDev FL/TX/CA), space stocks ticker, news/events/30-day recs, Telegram/cron alerts (24h/1h/10min). Triggers: Starship/SpaceX/launches/missions/space force.
 ---
 # LaunchIntel Skill
 
