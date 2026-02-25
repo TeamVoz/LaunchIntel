@@ -1,0 +1,25 @@
+{
+  "description": "Default stock symbols tracked by LaunchIntel. These represent major publicly traded companies in the space industry.",
+  "symbols": [
+    {
+      "ticker": "RKLB",
+      "name": "Rocket Lab USA, Inc.",
+      "sector": "Launch Services"
+    },
+    {
+      "ticker": "SPCE",
+      "name": "Virgin Galactic Holdings, Inc.",
+      "sector": "Space Tourism"
+    },
+    {
+      "ticker": "BA",
+      "name": "The Boeing Company",
+      "sector": "Aerospace & Defense"
+    },
+    {
+      "ticker": "LMT",
+      "name": "Lockheed Martin Corporation",
+      "sector": "Aerospace & Defense"
+    }
+  ]
+}

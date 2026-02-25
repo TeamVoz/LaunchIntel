@@ -1,93 +1,120 @@
+/**
+ * LaunchIntel — Smart Alerts
+ *
+ * Checks upcoming launches and sends timed notifications at configured
+ * intervals before liftoff. Alert state is persisted to prevent
+ * duplicate notifications across runs.
+ *
+ * Notification delivery is platform-agnostic: alerts are always printed
+ * to stdout. If ALERT_CHANNEL_ID is set, the script also attempts to
+ * deliver via the platform CLI (e.g., openclaw, slack, discord).
+ */
+
 const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { loadConfig } = require('../config');
 const { getLaunches } = require('./launch');
+const {
+  createLogger,
+  loadState,
+  saveState,
+} = require('./utils');
 
-const ALERT_STATE_FILE = path.join(__dirname, '../state/alerts.json');
-const CHANNEL_ID = process.env.ALERT_CHANNEL_ID;
+const log = createLogger('alerts');
 
-function loadAlertState() {
-  if (fs.existsSync(ALERT_STATE_FILE)) {
-    return JSON.parse(fs.readFileSync(ALERT_STATE_FILE, 'utf8'));
-  }
-  return {};
-}
+/**
+ * Send an alert message. Always logs to stdout; optionally delivers
+ * via a platform CLI when ALERT_CHANNEL_ID is configured.
+ * @param {string} msg - Alert message text.
+ * @param {string|undefined} channelId - Optional channel ID for delivery.
+ */
+function sendAlert(msg, channelId) {
+  console.log(msg);
 
-function saveAlertState(state) {
-  if (!fs.existsSync(path.dirname(ALERT_STATE_FILE))) {
-      fs.mkdirSync(path.dirname(ALERT_STATE_FILE), { recursive: true });
-  }
-  fs.writeFileSync(ALERT_STATE_FILE, JSON.stringify(state, null, 2));
-}
-
-function sendAlert(msg) {
-  console.log(msg); // Always log to stdout
-  if (CHANNEL_ID) {
+  if (channelId) {
     try {
-      // Escape the message for shell command
       const escapedMsg = msg.replace(/"/g, '\\"');
-      execSync(`openclaw message send --channel ${CHANNEL_ID} --message "${escapedMsg}"`, { stdio: 'ignore' });
+      // Platform-agnostic: replace 'openclaw' with your agent's CLI
+      const cli = process.env.ALERT_CLI || 'openclaw';
+      execSync(`${cli} message send --channel ${channelId} --message "${escapedMsg}"`, { stdio: 'ignore' });
+      log.info('Alert delivered via CLI', { channel: channelId });
     } catch (e) {
-      console.error("Failed to send alert via openclaw CLI:", e.message);
+      log.warn('Failed to send alert via CLI — message was still printed to stdout', { error: e.message });
     }
   }
 }
 
+/**
+ * Check all upcoming launches against configured alert windows and
+ * fire notifications as needed.
+ */
 async function checkAlerts() {
+  const config = loadConfig();
+  const stateFile = config.paths.alerts_state;
+  const channelId = config.alerts.channel_id;
+
   const launches = await getLaunches();
-  const state = loadAlertState();
+  const state = loadState(stateFile);
   const now = Date.now();
-  
   let updates = false;
 
   for (const launch of launches) {
     if (!launch.net) continue;
-    
+
     const launchTime = new Date(launch.net).getTime();
-    const timeDiff = launchTime - now;
-    const diffHours = timeDiff / (1000 * 60 * 60);
-    const diffMinutes = timeDiff / (1000 * 60);
-    
-    const launchId = `${launch.name}-${launch.net}`; // Simple ID
-    
+    const diffMs = launchTime - now;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const diffMinutes = diffMs / (1000 * 60);
+
+    const launchId = `${launch.name}-${launch.net}`;
+
     if (!state[launchId]) {
-      state[launchId] = { sent24h: false, sent4h: false, sent10m: false };
+      state[launchId] = {};
       updates = true;
     }
-    
-    // 24 Hour Alert (23.5h - 24.5h window)
-    if (diffHours <= 24.5 && diffHours >= 23.5 && !state[launchId].sent24h) {
-      sendAlert(`⏳ **24 Hours to Launch:** ${launch.name}\n📍 ${launch.location}\n⏰ ${launch.net}`);
-      state[launchId].sent24h = true;
-      updates = true;
-    }
-    
-    // 1 Hour Alert (instead of 4h, closer to launch)
-    if (diffHours <= 1.1 && diffHours >= 0.9 && !state[launchId].sent1h) {
-      sendAlert(`⚠️ **1 Hour to Launch:** ${launch.name}\n📍 ${launch.location}`);
-      state[launchId].sent1h = true; // Use flexible key
-      updates = true;
-    }
-    
-    // 10 Minute Alert (5m - 15m window)
-    if (diffMinutes <= 15 && diffMinutes >= 5 && !state[launchId].sent10m) {
-      sendAlert(`🚨 **10 Minutes to Launch:** ${launch.name}\n📺 Watch live!`);
-      state[launchId].sent10m = true;
-      updates = true;
+
+    // Evaluate each configured alert window
+    for (const window of config.alerts.windows) {
+      if (state[launchId][window.key]) continue; // Already sent
+
+      let inWindow = false;
+      if (window.min_hours != null && window.max_hours != null) {
+        inWindow = diffHours >= window.min_hours && diffHours <= window.max_hours;
+      } else if (window.min_minutes != null && window.max_minutes != null) {
+        inWindow = diffMinutes >= window.min_minutes && diffMinutes <= window.max_minutes;
+      }
+
+      if (inWindow) {
+        const detail = window.name === '10m'
+          ? '📺 Watch live!'
+          : `📍 ${launch.location}\n⏰ ${launch.net}`;
+        sendAlert(`${window.emoji} **${window.label}:** ${launch.name}\n${detail}`, channelId);
+        state[launchId][window.key] = true;
+        updates = true;
+      }
     }
   }
 
-  // Cleanup old launches (> 2 days old)
+  // Cleanup old launches (> configured TTL, default 48 h)
+  const cleanupTtl = config.defaults.alert_cleanup_ttl_ms;
   for (const id in state) {
-    const launchDate = new Date(id.split('-').pop()).getTime();
-    if (now - launchDate > 172800000) { // 48h
-       delete state[id];
-       updates = true;
+    const parts = id.split('-');
+    const dateStr = parts[parts.length - 1];
+    const launchDate = new Date(dateStr).getTime();
+    if (!isNaN(launchDate) && now - launchDate > cleanupTtl) {
+      delete state[id];
+      updates = true;
     }
   }
 
-  if (updates) saveAlertState(state);
+  if (updates) {
+    saveState(stateFile, state);
+    log.info('Alert state updated');
+  }
 }
+
+// ---------------------------------------------------------------------------
+// CLI Entry Point
+// ---------------------------------------------------------------------------
 
 if (require.main === module) {
   checkAlerts();

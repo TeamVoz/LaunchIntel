@@ -1,0 +1,57 @@
+{
+  "apis": {
+    "launch_library": {
+      "base_url": "https://ll.thespacedevs.com/2.2.0/launch",
+      "upcoming_path": "/upcoming/",
+      "previous_path": "/previous/",
+      "default_limit": 20,
+      "mode": "list"
+    },
+    "spacex": {
+      "base_url": "https://api.spacexdata.com/v5/launches",
+      "upcoming_path": "/upcoming"
+    },
+    "spaceflight_news": {
+      "base_url": "https://api.spaceflightnewsapi.net/v4/articles/",
+      "default_limit": 5
+    },
+    "yahoo_finance": {
+      "base_url": "https://query1.finance.yahoo.com/v8/finance/chart",
+      "interval": "1d"
+    }
+  },
+  "defaults": {
+    "stock_symbols": ["RKLB", "SPCE", "BA", "LMT"],
+    "recent_days": 30,
+    "recent_limit": 10,
+    "cache_ttl_ms": 3600000,
+    "fetch_timeout_ms": 5000,
+    "alert_cleanup_ttl_ms": 172800000
+  },
+  "spaceports": {
+    "target_ids": [12, 27, 11, 21, 143],
+    "target_keywords": [
+      "canaveral",
+      "kennedy",
+      "vandenberg",
+      "wallops",
+      "boca chica",
+      "starbase"
+    ]
+  },
+  "alerts": {
+    "windows": [
+      { "name": "24h", "key": "sent24h", "min_hours": 23.5, "max_hours": 24.5, "emoji": "⏳", "label": "24 Hours to Launch" },
+      { "name": "1h",  "key": "sent1h",  "min_hours": 0.9,  "max_hours": 1.1,  "emoji": "⚠️", "label": "1 Hour to Launch" },
+      { "name": "10m", "key": "sent10m", "min_minutes": 5,   "max_minutes": 15,  "emoji": "🚨", "label": "10 Minutes to Launch" }
+    ]
+  },
+  "paths": {
+    "state_dir": "state",
+    "assets_dir": "assets",
+    "launches_cache": "state/launches.json",
+    "alerts_state": "state/alerts.json",
+    "canvas_output": "state/canvas.html",
+    "canvas_template": "assets/template.html"
+  }
+}

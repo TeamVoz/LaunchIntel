@@ -1,0 +1,45 @@
+{
+  "description": "Spaceport definitions used by LaunchIntel for launch filtering. IDs correspond to Launch Library 2 location IDs.",
+  "spaceports": [
+    {
+      "id": 12,
+      "name": "Cape Canaveral Space Force Station",
+      "abbreviation": "CCSFS",
+      "state": "Florida",
+      "country": "USA",
+      "keywords": ["canaveral"]
+    },
+    {
+      "id": 27,
+      "name": "Kennedy Space Center",
+      "abbreviation": "KSC",
+      "state": "Florida",
+      "country": "USA",
+      "keywords": ["kennedy"]
+    },
+    {
+      "id": 11,
+      "name": "Vandenberg Space Force Base",
+      "abbreviation": "VSFB",
+      "state": "California",
+      "country": "USA",
+      "keywords": ["vandenberg"]
+    },
+    {
+      "id": 21,
+      "name": "Wallops Flight Facility",
+      "abbreviation": "WFF",
+      "state": "Virginia",
+      "country": "USA",
+      "keywords": ["wallops"]
+    },
+    {
+      "id": 143,
+      "name": "SpaceX Starbase",
+      "abbreviation": "Starbase",
+      "state": "Texas",
+      "country": "USA",
+      "keywords": ["boca chica", "starbase"]
+    }
+  ]
+}

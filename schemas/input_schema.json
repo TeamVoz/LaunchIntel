@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LaunchIntel Input Schemas",
+  "description": "Defines the expected inputs for each LaunchIntel command.",
+
+  "launch": {
+    "type": "object",
+    "description": "No user input required. Fetches upcoming launches automatically.",
+    "properties": {},
+    "additionalProperties": false
+  },
+
+  "recent": {
+    "type": "object",
+    "description": "Fetch recent launches within a look-back window.",
+    "properties": {
+      "days": {
+        "type": "integer",
+        "description": "Number of days to look back for recent launches.",
+        "default": 30,
+        "minimum": 1,
+        "maximum": 365
+      }
+    },
+    "additionalProperties": false
+  },
+
+  "spacestocks": {
+    "type": "object",
+    "description": "Fetch stock prices. Symbols are configured via config or STOCK_SYMBOLS env var.",
+    "properties": {
+      "symbols": {
+        "type": "array",
+        "description": "Optional override: array of ticker symbols to query.",
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Z]{1,5}$"
+        },
+        "minItems": 1,
+        "maxItems": 20
+      }
+    },
+    "additionalProperties": false
+  },
+
+  "spacenews": {
+    "type": "object",
+    "description": "No user input required. Fetches latest space news automatically.",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of articles to fetch.",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 50
+      }
+    },
+    "additionalProperties": false
+  },
+
+  "launch_canvas": {
+    "type": "object",
+    "description": "No user input required. Generates a visual countdown HTML page.",
+    "properties": {},
+    "additionalProperties": false
+  },
+
+  "alerts": {
+    "type": "object",
+    "description": "No user input required. Checks launches and fires timed alerts.",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

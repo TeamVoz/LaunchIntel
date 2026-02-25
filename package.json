@@ -1,0 +1,40 @@
+{
+  "name": "launchintel",
+  "version": "3.0.0",
+  "description": "An advanced, agent-optimized toolkit for real-time space intelligence — launch tracking, space stocks, news, alerts, and visual countdowns.",
+  "author": "TeamVoz",
+  "license": "MIT",
+  "homepage": "https://github.com/TeamVoz/LaunchIntel",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TeamVoz/LaunchIntel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TeamVoz/LaunchIntel/issues"
+  },
+  "keywords": [
+    "space",
+    "launches",
+    "rockets",
+    "stocks",
+    "news",
+    "alerts",
+    "ai-agent",
+    "skill",
+    "spacex",
+    "nasa"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "launch": "node scripts/launch.js",
+    "recent": "node scripts/recent.js",
+    "stocks": "node scripts/spacestocks.js",
+    "news": "node scripts/spacenews.js",
+    "alerts": "node scripts/alerts.js",
+    "canvas": "node scripts/canvas.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

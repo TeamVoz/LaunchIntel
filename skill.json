@@ -1,0 +1,127 @@
+{
+  "name": "launchintel",
+  "version": "3.0.0",
+  "description": "Real-time space launch tracking, space industry stock prices, news aggregation, smart alerts, and visual countdown — packaged as a modular agent skill.",
+  "author": "TeamVoz",
+  "license": "MIT",
+  "homepage": "https://github.com/TeamVoz/LaunchIntel",
+  "runtime": "node",
+  "min_runtime_version": "18.0.0",
+  "dependencies": [],
+  "portable_prompt": "launchintel_prompt.md",
+
+  "commands": [
+    {
+      "name": "launch",
+      "description": "List upcoming rocket launches from key US spaceports (Kennedy Space Center, Cape Canaveral, Vandenberg, Wallops, Starbase).",
+      "entry": "node scripts/launch.js",
+      "input_schema": "schemas/input_schema.json#/launch",
+      "output_schema": "schemas/output_schema.json#/launch"
+    },
+    {
+      "name": "recent",
+      "description": "Show launches from the past N days (default 30).",
+      "entry": "node scripts/recent.js",
+      "args": ["days"],
+      "input_schema": "schemas/input_schema.json#/recent",
+      "output_schema": "schemas/output_schema.json#/recent"
+    },
+    {
+      "name": "spacestocks",
+      "description": "Fetch real-time stock prices for space industry companies.",
+      "entry": "node scripts/spacestocks.js",
+      "input_schema": "schemas/input_schema.json#/spacestocks",
+      "output_schema": "schemas/output_schema.json#/spacestocks"
+    },
+    {
+      "name": "spacenews",
+      "description": "Fetch the latest space news headlines from the Spaceflight News API.",
+      "entry": "node scripts/spacenews.js",
+      "input_schema": "schemas/input_schema.json#/spacenews",
+      "output_schema": "schemas/output_schema.json#/spacenews"
+    },
+    {
+      "name": "launch_canvas",
+      "description": "Generate a visual HTML countdown page for the next upcoming launch.",
+      "entry": "node scripts/canvas.js",
+      "input_schema": "schemas/input_schema.json#/launch_canvas",
+      "output_schema": "schemas/output_schema.json#/launch_canvas"
+    },
+    {
+      "name": "alerts",
+      "description": "Check upcoming launches and fire timed notifications (24h, 1h, 10min before liftoff). Designed for cron/scheduler execution.",
+      "entry": "node scripts/alerts.js",
+      "input_schema": "schemas/input_schema.json#/alerts",
+      "output_schema": "schemas/output_schema.json#/alerts"
+    }
+  ],
+
+  "cron": [
+    {
+      "schedule": "*/10 * * * *",
+      "command": "alerts",
+      "description": "Check for launch alerts every 10 minutes"
+    },
+    {
+      "schedule": "0 8 * * *",
+      "command": "spacenews",
+      "description": "Fetch daily space news digest at 8 AM"
+    }
+  ],
+
+  "configuration": {
+    "file": "config/config.json",
+    "env_overrides": [
+      { "env": "LL_API_URL",        "description": "Override Launch Library 2 base URL" },
+      { "env": "SPACEX_API_URL",     "description": "Override SpaceX API base URL" },
+      { "env": "NEWS_API_URL",       "description": "Override Spaceflight News API URL" },
+      { "env": "YAHOO_FINANCE_URL",  "description": "Override Yahoo Finance API URL" },
+      { "env": "STOCK_SYMBOLS",      "description": "Comma-separated stock ticker symbols" },
+      { "env": "ALERT_CHANNEL_ID",   "description": "Channel ID for alert delivery" },
+      { "env": "ALERT_CLI",          "description": "CLI command for alert delivery (default: openclaw)" },
+      { "env": "CACHE_TTL_MS",       "description": "Cache time-to-live in milliseconds" },
+      { "env": "FETCH_TIMEOUT_MS",   "description": "HTTP fetch timeout in milliseconds" },
+      { "env": "LOG_LEVEL",          "description": "Logging verbosity: DEBUG, INFO, WARN, ERROR" }
+    ]
+  },
+
+  "files": {
+    "scripts": [
+      "scripts/launch.js",
+      "scripts/recent.js",
+      "scripts/spacestocks.js",
+      "scripts/spacenews.js",
+      "scripts/alerts.js",
+      "scripts/canvas.js",
+      "scripts/utils.js"
+    ],
+    "config": [
+      "config/config.json",
+      "config/index.js"
+    ],
+    "schemas": [
+      "schemas/input_schema.json",
+      "schemas/output_schema.json"
+    ],
+    "definitions": [
+      "definitions/spaceports.json",
+      "definitions/stock_symbols.json"
+    ],
+    "state": [
+      "state/launches.json",
+      "state/alerts.json"
+    ],
+    "assets": [
+      "assets/template.html",
+      "assets/launchintel-logo.jpg"
+    ],
+    "docs": [
+      "README.md",
+      "FAQ.md",
+      "SECURITY.md",
+      "CHECKLIST.md",
+      "SKILL.md",
+      "launchintel_prompt.md"
+    ]
+  }
+}

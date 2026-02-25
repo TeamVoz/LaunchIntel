@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LaunchIntel Output Schemas",
+  "description": "Defines the structured output format for each LaunchIntel command.",
+
+  "launch": {
+    "type": "array",
+    "description": "Array of upcoming launch objects, filtered by configured spaceports.",
+    "items": {
+      "type": "object",
+      "properties": {
+        "name":     { "type": "string", "description": "Launch / rocket name." },
+        "status":   { "type": "string", "description": "Launch status (e.g., Go, TBD, Confirmed)." },
+        "net":      { "type": "string", "format": "date-time", "description": "No Earlier Than — scheduled launch time (ISO 8601)." },
+        "pad":      { "type": "string", "description": "Launch pad name." },
+        "location": { "type": "string", "description": "Launch site / spaceport name." },
+        "image":    { "type": ["string", "null"], "description": "URL to mission patch image, or null." }
+      },
+      "required": ["name", "status", "net", "pad", "location"]
+    }
+  },
+
+  "recent": {
+    "type": "array",
+    "description": "Array of recent (past) launch objects.",
+    "items": {
+      "type": "object",
+      "properties": {
+        "name":     { "type": "string", "description": "Launch / rocket name." },
+        "status":   { "type": "string", "description": "Outcome status (e.g., Success, Failure)." },
+        "net":      { "type": "string", "format": "date-time", "description": "Actual launch time (ISO 8601)." },
+        "location": { "type": "string", "description": "Launch site name." },
+        "mission":  { "type": "string", "description": "Mission description." }
+      },
+      "required": ["name", "status", "net", "location"]
+    }
+  },
+
+  "spacestocks": {
+    "type": "array",
+    "description": "Array of stock price objects, one per symbol.",
+    "items": {
+      "type": "object",
+      "properties": {
+        "symbol":   { "type": "string", "description": "Ticker symbol." },
+        "price":    { "type": "string", "description": "Current price as a formatted string." },
+        "change":   { "type": "string", "description": "Absolute daily change." },
+        "percent":  { "type": "string", "description": "Percentage daily change (e.g., +1.23%)." },
+        "currency": { "type": "string", "description": "Currency code (e.g., USD)." },
+        "error":    { "type": "string", "description": "Error message if this symbol failed." },
+        "message":  { "type": "string", "description": "Fallback message if all symbols failed." }
+      },
+      "required": ["symbol"]
+    }
+  },
+
+  "spacenews": {
+    "type": "array",
+    "description": "Array of news article objects.",
+    "items": {
+      "type": "object",
+      "properties": {
+        "title":     { "type": "string", "description": "Article headline." },
+        "url":       { "type": "string", "format": "uri", "description": "Link to the full article." },
+        "site":      { "type": "string", "description": "Source publication name." },
+        "summary":   { "type": "string", "description": "Brief summary or excerpt." },
+        "published": { "type": "string", "description": "Publication date (locale-formatted)." }
+      },
+      "required": ["title", "url", "site", "summary", "published"]
+    }
+  },
+
+  "launch_canvas": {
+    "type": "object",
+    "description": "Result of canvas generation.",
+    "properties": {
+      "file": { "type": "string", "description": "Path to the generated HTML file." },
+      "launch_name": { "type": "string", "description": "Name of the launch used in the canvas." }
+    },
+    "required": ["file"]
+  },
+
+  "alerts": {
+    "type": "object",
+    "description": "Result of alert check cycle.",
+    "properties": {
+      "alerts_sent": { "type": "integer", "description": "Number of new alerts fired in this cycle." },
+      "launches_checked": { "type": "integer", "description": "Number of launches evaluated." }
+    },
+    "required": ["alerts_sent", "launches_checked"]
+  }
+}

@@ -1,43 +1,63 @@
+/**
+ * LaunchIntel — Canvas UI Generator
+ *
+ * Generates an HTML visual countdown page for the next upcoming launch
+ * by injecting live data into the HTML template.
+ */
+
 const fs = require('fs');
 const path = require('path');
+const { loadConfig } = require('../config');
 const { getLaunches } = require('./launch');
+const { createLogger } = require('./utils');
 
-const TEMPLATE_FILE = path.join(__dirname, '../assets/template.html');
-const OUTPUT_FILE = path.join(__dirname, '../state/canvas.html');
+const log = createLogger('canvas');
 
+/**
+ * Generate the visual countdown HTML file.
+ */
 async function generateCanvas() {
+  const config = loadConfig();
+  const templateFile = config.paths.canvas_template;
+  const outputFile = config.paths.canvas_output;
+
   const launches = await getLaunches();
   if (launches.length === 0) {
-    console.log("No launches available for canvas.");
+    log.warn('No launches available for canvas generation');
+    console.log('No launches available for canvas.');
     return;
   }
 
-  const nextLaunch = launches[0]; // Nearest launch
-  
-  let html = fs.readFileSync(TEMPLATE_FILE, 'utf8');
-  
+  const nextLaunch = launches[0];
+
+  let html = fs.readFileSync(templateFile, 'utf8');
+
   const launchData = {
     name: nextLaunch.name,
-    mission: nextLaunch.mission || "Unknown Mission",
+    mission: nextLaunch.mission || 'Unknown Mission',
     net: nextLaunch.net,
     location: nextLaunch.location,
     status: nextLaunch.status,
-    image: nextLaunch.image
+    image: nextLaunch.image,
   };
 
   const scriptInjection = `window.LAUNCH_DATA = ${JSON.stringify(launchData)};`;
-  
-  // Replace the placeholder or inject at the beginning of script
   html = html.replace('// Data injected here', scriptInjection);
-  
+
   // Ensure output directory exists
-  if (!fs.existsSync(path.dirname(OUTPUT_FILE))) {
-      fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
+  const outputDir = path.dirname(outputFile);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  fs.writeFileSync(OUTPUT_FILE, html);
-  console.log(`Canvas generated at: ${OUTPUT_FILE}`);
+  fs.writeFileSync(outputFile, html);
+  log.info(`Canvas generated at: ${outputFile}`);
+  console.log(`Canvas generated at: ${outputFile}`);
 }
+
+// ---------------------------------------------------------------------------
+// CLI Entry Point
+// ---------------------------------------------------------------------------
 
 if (require.main === module) {
   generateCanvas();

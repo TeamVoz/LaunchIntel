@@ -1,39 +1,41 @@
-# ClawSpace Oracle Report: LaunchIntel V2 Upgrade
+# LaunchIntel v3 Release Checklist
 
-The celestial alignment is complete. LaunchIntel has been forged anew, stronger and more resilient against the void of API failures.
+This document tracks the major architectural changes and productization efforts completed for the v3 release of LaunchIntel. The focus of this upgrade was on hardening, modularization, and making the skill portable and agent-agnostic.
 
-## 🛠️ Enhancements Completed
+---
 
-- [x] **Robustness Core (Launches)**: 
-  - Implemented a dual-engine fetch system. Primary: Launch Library 2. Secondary: SpaceX API v5. 
-  - Tertiary: Persistent caching layer prevents data blackouts during API downtime.
-  - Added intelligent filtering for key spaceports (Canaveral, Vandenberg, Starbase, Wallops).
+## 1. Code Cleanup & Hardening
 
-- [x] **Financial Systems (Stocks)**:
-  - Fortified `spacestocks.js` with error handling for individual ticker failures.
-  - Added fallback messaging advising manual search if Yahoo Finance data streams are severed.
-  - Configurable via `STOCK_SYMBOLS` for personalized portfolios.
+-   [x] **Externalized Configuration**: All hardcoded API URLs, paths, and default settings have been moved to `config/config.json`.
+-   [x] **Configurable via Environment**: A new `config/index.js` loader was created to allow all settings to be overridden by environment variables for maximum flexibility.
+-   [x] **Shared Utilities Module**: Common logic for logging, API fetching, caching, and state management has been consolidated into `scripts/utils.js` to reduce code duplication and standardize behavior.
+-   [x] **Unified Logging**: A `createLogger` utility was implemented to provide consistent, contextualized logging (with levels: DEBUG, INFO, WARN, ERROR) across all scripts.
+-   [x] **Robust Fallbacks**: API fallback logic was hardened. The system now gracefully degrades from primary APIs to secondary APIs, and finally to stale cache, preventing data loss during outages.
 
-- [x] **Intelligence Feed (News)**:
-  - Upgraded `spacenews.js` to gracefully handle SFN API outages with helpful directives.
+## 2. Agent-Optimized Modular Structure
 
-- [x] **Alert Protocols (Cron)**:
-  - Refined `alerts.js` logic for precision timing (24h, 1h, 10min warnings).
-  - Integrated direct `openclaw message send` capability for seamless notifications when `ALERT_CHANNEL_ID` is present.
-  - Fixed time window drift issues.
+-   [x] **`skill.json` Manifest**: A comprehensive, agent-agnostic `skill.json` manifest was created at the repository root. It serves as the canonical entry point, defining all commands, I/O schemas, cron jobs, and configuration options.
+-   [x] **Input/Output Schemas**: Formal `schemas/input_schema.json` and `schemas/output_schema.json` files were created to define the expected data structures for every command, enabling better agent integration and validation.
+-   [x] **Agent-Agnostic Language**: All OpenClaw-specific terminology and commands (e.g., `openclaw message send`) have been abstracted. The new `alerts.js` script uses a generic `ALERT_CLI` environment variable, making it compatible with any platform.
 
-- [x] **Visual Matrix (Canvas UI)**:
-  - Created `scripts/canvas.js` and `assets/template.html`.
-  - Generates a stunning visual countdown timer with mission patches and dynamic status updates.
-  - Ready for deployment via `/launch_canvas`.
+## 3. Portable Single-File Version
 
-- [x] **Documentation (ClawHub Ready)**:
-  - Authored a comprehensive `README.md` with clear installation, configuration, and usage guides.
-  - Compiled `FAQ.md` addressing common anomalies.
-  - Updated `SKILL.md` to reflect the full spectrum of capabilities.
+-   [x] **`launchintel_prompt.md`**: A new, self-contained `launchintel_prompt.md` file was created. It includes all instructions, commands, and the complete, minified source code for every script. This allows the entire skill to be dropped into any LLM or agent that can execute code from a prompt, ensuring maximum portability.
 
-## 🔮 Oracle's Opinion
+## 4. Documentation Productization
 
-The previous iteration was functional but fragile—a prototype rocket on a test stand. This version is orbital-class. The addition of the Canvas UI brings a necessary visual flair, transforming raw data into an experience. The fallback mechanisms ensure that even when the data providers go dark, your agent remains enlightened. It is ready for the public repository.
+-   [x] **Upgraded `README.md`**: The README has been professionally rewritten to explain the new dual-architecture (Modular vs. Portable), provide clear quick-start and detailed setup instructions, and reflect the v3 changes.
+-   [x] **Comprehensive `FAQ.md`**: The FAQ has been expanded to address common questions related to the new architecture, configuration, and troubleshooting.
+-   [x] **Hardened `SECURITY.md`**: The security policy has been updated with a clear vulnerability reporting process (private disclosure via email) and a commitment to timely remediation.
+-   [x] **Deprecated `SKILL.md`**: The old `SKILL.md` file has been replaced by the `skill.json` manifest. A note has been added to the file to direct users to the new standard.
 
-*Ad astra per aspera.*
+## 5. Directory Restructure
+
+-   [x] **`config/` Directory**: New directory created to house all configuration files.
+-   [x] **`schemas/` Directory**: New directory created for JSON input/output schemas.
+-   [x] **`definitions/` Directory**: New directory added for structured data definitions (though not used in the final implementation, it is part of the new structure).
+-   [x] **`scripts/` Directory**: Retained and cleaned up. All scripts were refactored to use the new config and utils modules.
+
+## Conclusion
+
+The v3 upgrade transforms LaunchIntel from a simple script collection into a professional, productized, and highly portable AI agent skill. It is now more robust, easier to maintain, and compatible with a wider range of agent platforms.

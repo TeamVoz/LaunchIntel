@@ -1,83 +1,93 @@
-# LaunchIntel 🚀
+# LaunchIntel v3 🚀
 
-**The ultimate space hobbyist toolkit for OpenClaw agents.**
+**An advanced, agent-optimized toolkit for real-time space intelligence.**
 
-LaunchIntel provides real-time tracking for rocket launches, space industry stocks, and latest news, all from your agent's command line.
+LaunchIntel provides a suite of commands for monitoring rocket launches, tracking space industry stocks, aggregating news, and receiving automated alerts. Version 3 has been completely re-architected for robustness, portability, and ease of integration with any modern AI agent platform.
 
 ![LaunchIntel Banner](assets/launchintel-logo.jpg)
 
-## Features
+---
 
-- **🚀 Launch Tracker**: Monitor upcoming launches from key spaceports (Kennedy Space Center, Cape Canaveral, Vandenberg, Wallops, Starbase).
-- **📈 Space Stocks**: Live price tracking for major space companies (Rocket Lab, Virgin Galactic, Boeing, Lockheed Martin, etc.).
-- **📰 Space News**: Daily digest of the latest headlines from Spaceflight Now and other sources.
-- **🚨 Smart Alerts**: Automated notifications at 24h, 1h, and 10min before liftoff.
-- **🎨 Canvas UI**: Visual countdown timer for the next big launch.
+## Core Features
 
-## Installation
+- **🚀 Launch Tracker**: Monitor upcoming and recent launches from key global spaceports, with data sourced from Launch Library 2 and the SpaceX API.
+- **📈 Space Stocks**: Live price tracking for a configurable portfolio of space industry companies via Yahoo Finance.
+- **📰 Space News**: A real-time digest of the latest headlines from the Spaceflight News API.
+- **🚨 Smart Alerts**: A cron-ready script that provides automated, timed notifications for upcoming launches (24h, 1h, 10m before liftoff).
+- **🎨 Canvas UI**: Generate a stunning, self-contained HTML visual countdown page for the next major launch.
 
-1.  **Clone the skill:**
-    ```bash
-    cd /root/.openclaw/workspace/skills
-    git clone https://github.com/yourusername/launchintel.git
-    cd launchintel
-    ```
+## Architecture: Dual-Approach for Maximum Flexibility
 
-2.  **Install Dependencies:**
-    This skill requires Node.js (v18+ recommended). No external npm packages are required; it uses standard libraries and native `fetch`.
+LaunchIntel v3 is designed with two primary use cases in mind, offering a unique dual architecture that separates the skill's definition from its implementation.
 
-3.  **Configure Environment:**
-    Create a `.env` file in the root of the skill (or set these in your agent's environment):
+| Approach | File | Description |
+| :--- | :--- | :--- |
+| **Modular Skill** | `skill.json` | The primary, agent-agnostic manifest. It defines the skill's commands, schemas, configuration, and file structure. This is the recommended approach for deep integration with sophisticated agent platforms that can parse and execute structured manifests. |
+| **Portable Prompt** | `launchintel_prompt.md` | A single, self-contained Markdown file that includes all instructions, commands, and full source code. This allows for maximum portability and can be dropped into any AI system that can read a prompt and execute code, without needing to parse a complex file structure. |
 
-    ```ini
-    # Optional: Custom Launch Library API URL (default provided)
-    LL_API_URL=https://ll.thespacedevs.com/2.2.0/launch/upcoming/
+This dual approach ensures that LaunchIntel can be used by both advanced agent ecosystems and simpler LLM environments with minimal setup.
 
-    # Optional: Alert Channel ID (for Telegram/Discord notifications)
-    ALERT_CHANNEL_ID=your_channel_id_here
+## Quick Start: Portable Prompt Method
 
-    # Optional: Stock Symbols (comma-separated)
-    STOCK_SYMBOLS=RKLB,SPCE,BA,LMT,NOC
-    ```
+For the fastest deployment, you can provide the contents of `launchintel_prompt.md` directly to your AI agent.
 
-## Usage
+1.  **Provide the Prompt**: Copy the full content of `launchintel_prompt.md` into your agent's context or prompt window.
+2.  **Execute**: The agent will have all the necessary information, including file contents and commands, to execute the skill's functions as if the files were on its local system.
 
-### Commands
+## Detailed Setup: Modular Skill Method
 
-- **/launch**: List upcoming launches.
-- **/spacestocks**: Show current stock prices and daily change.
-- **/spacenews**: Fetch latest space news headlines.
-- **/launch_canvas**: Display a visual countdown for the next launch.
+For a more permanent and structured installation, clone the repository and use the `skill.json` manifest.
 
-### Automated Alerts (Cron)
+### 1. Installation
 
-To enable automatic alerts, add the following to your agent's crontab or scheduler:
+```bash
+# Clone the repository into your agent's skill directory
+cd /path/to/your/agent/skills
+git clone https://github.com/TeamVoz/LaunchIntel.git
+cd LaunchIntel
+```
+
+This skill requires **Node.js (v18+ recommended)**. It uses only native Node libraries and has no external `npm` dependencies, simplifying installation.
+
+### 2. Configuration
+
+Configuration is managed through `config/config.json` and can be dynamically overridden with environment variables for flexibility.
+
+**Primary Environment Variables:**
+
+-   `STOCK_SYMBOLS`: A comma-separated list of stock tickers to monitor (e.g., `RKLB,SPCE,BA`).
+-   `ALERT_CHANNEL_ID`: The specific channel, user, or webhook ID for delivering automated alerts.
+-   `ALERT_CLI`: The command-line tool to use for sending messages (e.g., `openclaw`, `slack`, `discord`). Defaults to `openclaw`.
+-   `LOG_LEVEL`: Set logging verbosity. Options: `DEBUG`, `INFO`, `WARN`, `ERROR` (default is `INFO`).
+
+### 3. Command Usage
+
+Once installed, the agent can execute the skill's functions using the commands defined in `skill.json`.
+
+| Command | Description |
+| :--- | :--- |
+| `/launch` | List upcoming rocket launches. |
+| `/recent [days]` | Show launches from the past N days (default: 30). |
+| `/spacestocks` | Fetch real-time stock prices. |
+| `/spacenews` | Fetch the latest space news headlines. |
+| `/launch_canvas` | Generate a visual HTML countdown page. |
+
+### 4. Automated Alerts (Cron)
+
+To enable automated alerts, add the `alerts` command to your system's scheduler (like `cron`).
 
 ```cron
 # Check for launch alerts every 10 minutes
-*/10 * * * * node /path/to/skills/launchintel/scripts/alerts.js
+*/10 * * * * /usr/bin/node /path/to/LaunchIntel/scripts/alerts.js
 
-# Fetch daily news at 8 AM
-0 8 * * * node /path/to/skills/launchintel/scripts/spacenews.js
+# Fetch a daily news digest at 8 AM
+0 8 * * * /usr/bin/node /path/to/LaunchIntel/scripts/spacenews.js
 ```
-
-## APIs Used
-
-- **The Space Devs (Launch Library 2)**: Primary source for global launch data.
-- **SpaceX API v5**: Fallback and detailed SpaceX mission data.
-- **Yahoo Finance**: Real-time stock quotes.
-- **Spaceflight News API (SNAPI)**: News aggregation.
-
-## Screenshots
-
-| Launch List | Stock Ticker | Visual Canvas |
-|-------------|--------------|---------------|
-| ![Launch List](assets/screenshots/launch_list.png) | ![Stocks](assets/screenshots/stocks.png) | ![Canvas](assets/screenshots/canvas.png) |
 
 ## Contributing
 
-Pull requests are welcome! Please ensure any new features include proper error handling and API fallbacks.
+Pull requests are welcome. Please adhere to the existing coding style, which emphasizes clarity, modularity, and robust error handling. Ensure any new features are reflected in both the `skill.json` manifest and the `launchintel_prompt.md` portable prompt.
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the `LICENSE` file for details.

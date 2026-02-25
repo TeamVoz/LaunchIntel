@@ -1,18 +1,39 @@
-const STOCKS = (process.env.STOCK_SYMBOLS || "RKLB,SPCE,BA,LMT").split(',');
+/**
+ * LaunchIntel — Space Stocks
+ *
+ * Fetches real-time stock prices for space industry companies via
+ * Yahoo Finance. Symbols are configurable through config or the
+ * STOCK_SYMBOLS environment variable.
+ */
 
+const { loadConfig } = require('../config');
+const {
+  createLogger,
+  fetchWithTimeout,
+} = require('./utils');
+
+const log = createLogger('spacestocks');
+
+/**
+ * Fetch current stock prices for all configured symbols.
+ * @returns {Promise<Array>} Array of stock result objects.
+ */
 async function getStockPrices() {
+  const config = loadConfig();
+  const symbols = config.defaults.stock_symbols;
   const results = [];
-  let apiFailed = false;
 
-  for (const symbol of STOCKS) {
+  for (const symbol of symbols) {
+    const ticker = symbol.trim();
+    const url = `${config.apis.yahoo_finance.base_url}/${ticker}?interval=${config.apis.yahoo_finance.interval}`;
+
     try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol.trim()}?interval=1d`;
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url);
       if (!res.ok) throw new Error(`Status ${res.status}`);
-      
+
       const data = await res.json();
       if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
-        results.push({ symbol: symbol.trim(), error: "No data" });
+        results.push({ symbol: ticker, error: 'No data' });
         continue;
       }
 
@@ -21,34 +42,44 @@ async function getStockPrices() {
       const prevClose = meta.previousClose;
       const change = price - prevClose;
       const percent = ((change / prevClose) * 100).toFixed(2);
-      
+
       results.push({
         symbol: meta.symbol,
         price: price.toFixed(2),
         change: change.toFixed(2),
         percent: percent > 0 ? `+${percent}%` : `${percent}%`,
-        currency: meta.currency
+        currency: meta.currency,
       });
     } catch (e) {
-      console.error(`Error fetching ${symbol}: ${e.message}`);
-      results.push({ symbol: symbol.trim(), error: "Data unavailable" });
-      apiFailed = true; // flag if any fail
+      log.warn(`Error fetching ${ticker}`, { error: e.message });
+      results.push({ symbol: ticker, error: 'Data unavailable' });
     }
   }
 
-  // If ALL failed, return special object indicating web search fallback needed
+  // If ALL symbols failed, return a special fallback indicator
   if (results.every(r => r.error)) {
-    return [{ error: "ALL_FAILED", message: "Stock data unavailable via API. Try asking: 'Search stock price for RKLB'" }];
+    log.error('All stock fetches failed');
+    return [{
+      error: 'ALL_FAILED',
+      message: "Stock data unavailable via API. Try searching manually for current prices.",
+    }];
   }
 
+  log.info(`Fetched prices for ${results.filter(r => !r.error).length}/${symbols.length} symbols`);
   return results;
 }
 
+// ---------------------------------------------------------------------------
+// CLI Entry Point
+// ---------------------------------------------------------------------------
+
 if (require.main === module) {
   getStockPrices().then(stocks => {
-    console.log("📈 **Space Stocks**\n");
+    console.log('📈 **Space Stocks**\n');
     stocks.forEach(s => {
-      if (s.error) {
+      if (s.error === 'ALL_FAILED') {
+        console.log(`❌ ${s.message}`);
+      } else if (s.error) {
         console.log(`❌ ${s.symbol}: ${s.error}`);
       } else {
         const icon = s.percent.startsWith('+') ? '🟢' : '🔴';

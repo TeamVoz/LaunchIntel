@@ -1,1 +1,17 @@
+# Environment secrets
 .env
+
+# Node.js
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Generated canvas output (regenerated at runtime)
+state/canvas.html
